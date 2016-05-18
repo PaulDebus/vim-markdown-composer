@@ -77,6 +77,10 @@ class MarkdownPlugin(object):
         if self.should_autostart():
             self.start_client()
 
+    def current_working_directory(self):
+        "Returns the path of the directory containing the current buffer."
+        return os.path.dirname(self.vim.current.buffer.name)
+
     def start_client(self):
         """
         Starts the Rust client, which handles most of the heavy lifting.
@@ -101,6 +105,7 @@ class MarkdownPlugin(object):
             self.vim.vars.get('markdown_composer_open_browser', 1) == 1)
         syntax_theme = self.vim.vars.get('markdown_composer_syntax_theme')
         current_buffer = '\n'.join(self.vim.current.buffer)
+        working_directory = self.current_working_directory()
 
         def launch_client_process():
             """
@@ -119,7 +124,7 @@ class MarkdownPlugin(object):
             if syntax_theme:
                 args.append('--highlight-theme=%s' % syntax_theme)
 
-            args.append('--working-directory=%s' % os.getcwd())
+            args.append('--working-directory=%s' % str(working_directory))
 
             self.client_process = subprocess.Popen(
                 args + [str(self.listening_port), current_buffer],
@@ -137,8 +142,7 @@ class MarkdownPlugin(object):
         if self.client is None:
             return
 
-        current_dir = os.path.dirname(self.vim.current.buffer.name)
-        msg = msgpack.packb(['chdir', current_dir])
+        msg = msgpack.packb(['chdir', str(self.current_working_directory())])
 
     @neovim.autocmd('CursorHold,CursorHoldI,CursorMoved,CursorMovedI',
                     pattern='*.md,*.mkd,*.markdown')
